@@ -1,0 +1,4 @@
+*.exe 
+contacts.db 
+*.tmp 
+.vscode/ 
