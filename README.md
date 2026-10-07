@@ -56,6 +56,10 @@ Input validation
 
 Duplicate phone/email prevention
 
+Phone numbers must contain exactly 10 digits and start with 6, 7, 8, or 9
+
+Contacts also store address, a six-digit pincode, alphabetic city, and a two-letter state short form such as AP
+
 Graceful handling of malformed data file entries
 
 Bounded number of contacts

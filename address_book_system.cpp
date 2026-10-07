@@ -17,26 +17,45 @@ private:
     string name;
     string phone;
     string email;
+    string address;
+    string pincode;
+    string city;
+    string state;
 
 public:
     Contact() = default;
 
-    Contact(string n, string p, string e)
-        : name(std::move(n)), phone(std::move(p)), email(std::move(e)) {}
+    Contact(string n, string p, string e, string a, string pin, string c,
+            string s)
+        : name(std::move(n)), phone(std::move(p)), email(std::move(e)),
+          address(std::move(a)), pincode(std::move(pin)), city(std::move(c)),
+          state(std::move(s)) {}
 
     const string& getName() const { return name; }
     const string& getPhone() const { return phone; }
     const string& getEmail() const { return email; }
+    const string& getAddress() const { return address; }
+    const string& getPincode() const { return pincode; }
+    const string& getCity() const { return city; }
+    const string& getState() const { return state; }
 
     void setName(const string& n) { name = n; }
     void setPhone(const string& p) { phone = p; }
     void setEmail(const string& e) { email = e; }
+    void setAddress(const string& a) { address = a; }
+    void setPincode(const string& p) { pincode = p; }
+    void setCity(const string& c) { city = c; }
+    void setState(const string& s) { state = s; }
 
     void display(size_t number) const {
         cout << "\nContact " << number << '\n';
         cout << "Name  : " << name << '\n';
         cout << "Phone : " << phone << '\n';
         cout << "Email : " << email << '\n';
+        cout << "Address: " << address << '\n';
+        cout << "Pincode: " << pincode << '\n';
+        cout << "City  : " << city << '\n';
+        cout << "State : " << state << '\n';
     }
 };
 
@@ -45,7 +64,9 @@ private:
     static constexpr size_t MAX_CONTACTS = 1000;
     static constexpr size_t MAX_NAME_LEN = 60;
     static constexpr size_t MAX_EMAIL_LEN = 100;
-    static constexpr size_t MAX_LINE_LEN = 300;
+    static constexpr size_t MAX_ADDRESS_LEN = 200;
+    static constexpr size_t MAX_CITY_LEN = 60;
+    static constexpr size_t MAX_LINE_LEN = 600;
 
     vector<Contact> contacts;
     const string dataFile = "contacts.db";
@@ -107,13 +128,53 @@ private:
     static bool validPhone(const string& rawPhone) {
         string phone = trim(rawPhone);
 
-        // Simple, predictable format: 7 to 15 digits.
-        if (phone.size() < 7 || phone.size() > 15) {
+        if (phone.size() != 10 ||
+            (phone.front() != '6' && phone.front() != '7' &&
+             phone.front() != '8' && phone.front() != '9')) {
             return false;
         }
 
         return all_of(phone.begin(), phone.end(),
                       [](unsigned char ch) { return isdigit(ch); });
+    }
+
+    static bool validAddress(const string& rawAddress) {
+        string address = trim(rawAddress);
+        return !address.empty() && address.size() <= MAX_ADDRESS_LEN &&
+               isPrintableAscii(address);
+    }
+
+    static bool validPincode(const string& rawPincode) {
+        string pincode = trim(rawPincode);
+        return pincode.size() == 6 &&
+               all_of(pincode.begin(), pincode.end(),
+                      [](unsigned char ch) { return isdigit(ch); });
+    }
+
+    static bool validCity(const string& rawCity) {
+        string city = trim(rawCity);
+
+        if (city.empty() || city.size() > MAX_CITY_LEN) {
+            return false;
+        }
+
+        bool hasLetter = false;
+        for (unsigned char ch : city) {
+            if (isalpha(ch)) {
+                hasLetter = true;
+            } else if (ch != ' ' && ch != '-' && ch != '.') {
+                return false;
+            }
+        }
+
+        return hasLetter;
+    }
+
+    static bool validState(const string& rawState) {
+        string state = trim(rawState);
+        return state.size() == 2 &&
+               all_of(state.begin(), state.end(),
+                      [](unsigned char ch) { return isalpha(ch); });
     }
 
     static bool validEmail(const string& rawEmail) {
@@ -271,7 +332,7 @@ private:
             }
 
             if (!validPhone(value)) {
-                cout << "Invalid phone. Enter 7-15 digits only.\n";
+                cout << "Invalid phone. Enter exactly 10 digits starting with 6, 7, 8, or 9.\n";
                 continue;
             }
 
@@ -284,14 +345,68 @@ private:
         }
     }
 
+    string readValidAddress(const string& prompt) const {
+        while (true) {
+            string value = readLine(prompt);
+            if (value.empty()) {
+                return value;
+            }
+
+            if (validAddress(value)) {
+                return value;
+            }
+            cout << "Invalid address. Enter a non-empty printable address (maximum 200 characters).\n";
+        }
+    }
+
+    string readValidPincode(const string& prompt) const {
+        while (true) {
+            string value = readLine(prompt);
+            if (value.empty()) {
+                return value;
+            }
+
+            if (validPincode(value)) {
+                return value;
+            }
+            cout << "Invalid pincode. Enter exactly 6 digits.\n";
+        }
+    }
+
+    string readValidCity(const string& prompt) const {
+        while (true) {
+            string value = readLine(prompt);
+            if (value.empty()) {
+                return value;
+            }
+
+            if (validCity(value)) {
+                return value;
+            }
+            cout << "Invalid city. Use alphabetic characters, spaces, hyphens, or periods only.\n";
+        }
+    }
+
+    string readValidState(const string& prompt) const {
+        while (true) {
+            string value = toLowerCopy(readLine(prompt));
+            if (value.empty()) {
+                return value;
+            }
+
+            if (validState(value)) {
+                return value;
+            }
+            cout << "Invalid state. Enter a 2-letter state short form, such as AP.\n";
+        }
+    }
+
     string readValidEmail(const string& prompt, int ignoreIndex = -1) const {
         while (true) {
             string value = readLine(prompt);
 
             if (value.empty()) {
-                // EOF: exit gracefully rather than infinite loop
-                cout << "\nInput stream closed. Exiting.\n";
-                exit(0);
+                return value;
             }
 
             if (!validEmail(value)) {
@@ -320,7 +435,11 @@ private:
         for (const auto& contact : contacts) {
             out << quoted(contact.getName()) << ' '
                 << quoted(contact.getPhone()) << ' '
-                << quoted(contact.getEmail()) << '\n';
+                << quoted(contact.getEmail()) << ' '
+                << quoted(contact.getAddress()) << ' '
+                << quoted(contact.getPincode()) << ' '
+                << quoted(contact.getCity()) << ' '
+                << quoted(contact.getState()) << '\n';
 
             if (!out) {
                 cerr << "Warning: write failed. Leaving original data intact.\n";
@@ -374,14 +493,25 @@ private:
                 continue;
             }
 
-            string name, phone, email;
+            string name, phone, email, address, pincode, city, state;
             stringstream ss(line);
 
             bool mismatch = false;
 
-            if (!(ss >> quoted(name) >> quoted(phone) >> quoted(email) >> ws)) {
+            if (!(ss >> quoted(name) >> quoted(phone) >> quoted(email))) {
                 continue;
             }
+
+            // Accept the old three-field format; newly created records always
+            // contain all seven fields and are fully validated below.
+            bool hasAdditionalFields = static_cast<bool>(ss >> quoted(address));
+
+            if (hasAdditionalFields &&
+                !(ss >> quoted(pincode) >> quoted(city) >> quoted(state))) {
+                continue;
+            }
+
+            ss >> ws;
 
             string trailing;
             while (ss >> trailing) {
@@ -398,7 +528,12 @@ private:
             phone = trim(phone);
             email = trim(email);
 
-            if (!validName(name) || !validPhone(phone) || !validEmail(email)) {
+            if (!validName(name) || !validPhone(phone) ||
+                (!email.empty() && !validEmail(email)) ||
+                (!address.empty() && !validAddress(address)) ||
+                (!pincode.empty() && !validPincode(pincode)) ||
+                (!city.empty() && !validCity(city)) ||
+                (!state.empty() && !validState(state))) {
                 continue;
             }
 
@@ -406,14 +541,16 @@ private:
 
             for (const auto& c : loaded) {
                 if (c.getPhone() == phone ||
-                    toLowerCopy(c.getEmail()) == toLowerCopy(email)) {
+                    (!email.empty() &&
+                     toLowerCopy(c.getEmail()) == toLowerCopy(email))) {
                     duplicate = true;
                     break;
                 }
             }
 
             if (!duplicate) {
-                loaded.emplace_back(name, phone, email);
+                loaded.emplace_back(name, phone, email, address, pincode, city,
+                                    state);
             }
         }
 
@@ -479,8 +616,12 @@ public:
         string name = readValidName("Enter Name: ");
         string phone = readValidPhone("Enter Phone Number: ");
         string email = readValidEmail("Enter Email: ");
+        string address = readValidAddress("Enter Address: ");
+        string pincode = readValidPincode("Enter Pincode: ");
+        string city = readValidCity("Enter City: ");
+        string state = readValidState("Enter State (2-letter short form): ");
 
-        contacts.emplace_back(name, phone, email);
+        contacts.emplace_back(name, phone, email, address, pincode, city, state);
 
         if (saveToFile()) {
             cout << "Contact added successfully.\n";
@@ -591,7 +732,7 @@ public:
             }
 
             if (!validPhone(newPhone)) {
-                cout << "Invalid phone. Enter 7-15 digits only.\n";
+                cout << "Invalid phone. Enter exactly 10 digits starting with 6, 7, 8, or 9.\n";
                 continue;
             }
 
@@ -625,11 +766,63 @@ public:
             break;
         }
 
+        while (true) {
+            string newAddress = readLine("New Address [" + contacts[index].getAddress() + "]: ");
+            if (newAddress.empty()) {
+                break;
+            }
+            if (validAddress(newAddress)) {
+                contacts[index].setAddress(newAddress);
+                break;
+            }
+            cout << "Invalid address.\n";
+        }
+
+        while (true) {
+            string newPincode = readLine("New Pincode [" + contacts[index].getPincode() + "]: ");
+            if (newPincode.empty()) {
+                break;
+            }
+            if (validPincode(newPincode)) {
+                contacts[index].setPincode(newPincode);
+                break;
+            }
+            cout << "Invalid pincode. Enter exactly 6 digits.\n";
+        }
+
+        while (true) {
+            string newCity = readLine("New City [" + contacts[index].getCity() + "]: ");
+            if (newCity.empty()) {
+                break;
+            }
+            if (validCity(newCity)) {
+                contacts[index].setCity(newCity);
+                break;
+            }
+            cout << "Invalid city.\n";
+        }
+
+        while (true) {
+            string newState = readLine("New State [" + contacts[index].getState() + "]: ");
+            if (newState.empty()) {
+                break;
+            }
+            newState = toLowerCopy(newState);
+            if (validState(newState)) {
+                contacts[index].setState(newState);
+                break;
+            }
+            cout << "Invalid state. Enter a 2-letter state short form.\n";
+        }
+
         if (saveToFile()) {
             cout << "Contact updated successfully.\n";
         } else {
             cout << "Contact was updated in memory, but saving failed.\n";
         }
+
+        cout << "\nUpdated contact details:\n";
+        contacts[index].display(static_cast<size_t>(index) + 1);
     }
 
     void deleteContact() {
@@ -680,22 +873,26 @@ public:
     }
 
     void sortContacts() {
-        if (contacts.size() < 2) {
-            cout << "\nNot enough contacts to sort.\n";
+        if (contacts.empty()) {
+            cout << "\nNo contacts available.\n";
             return;
         }
 
-        stable_sort(contacts.begin(), contacts.end(),
-                    [](const Contact& a, const Contact& b) {
-                        return toLowerCopy(a.getName()) <
-                               toLowerCopy(b.getName());
-                    });
+        if (contacts.size() >= 2) {
+            stable_sort(contacts.begin(), contacts.end(),
+                        [](const Contact& a, const Contact& b) {
+                            return toLowerCopy(a.getName()) <
+                                   toLowerCopy(b.getName());
+                        });
+        }
 
         if (saveToFile()) {
             cout << "\nContacts sorted alphabetically.\n";
         } else {
             cout << "\nContacts sorted in memory, but saving failed.\n";
         }
+
+        displayContacts();
     }
 
     void showMenu() const {
